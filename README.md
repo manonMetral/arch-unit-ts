@@ -318,6 +318,51 @@ it('no application service method should be decorated with @Deprecated', () => {
 - `.allowEmptyShould(false)` — throws if no method is checked (default: driven by `arch-unit-ts.json`).
 - `.because('reason')` — appends a human-readable explanation to the violation message.
 
+### Slices and circular dependencies
+
+`slices()` checks that groups of classes (slices) do not depend on each other in a cycle: `billing` imports `orders`, which imports `billing`.
+
+```ts
+import { slices } from 'arch-unit-ts/dist/main';
+
+it('bounded contexts should be free of cycles', () => {
+  slices().matching('..myapp.(*)..').should().beFreeOfCycles().because('bounded contexts must be independent').check(project.allClasses());
+});
+```
+
+Slices are defined by the capturing groups `(*)` (one package) and `(**)` (several packages) of a package identifier. With `..myapp.(*)..`, each first package under `myapp` is a slice. Several groups give a slice named after all of them joined with `.`. Classes whose package does not match the whole identifier belong to no slice, and so do the classes they import: these imports are ignored, like the ones inside a slice.
+
+When the packages do not follow a convention, assign slices yourself:
+
+```ts
+slices()
+  .assignedFrom({
+    getIdentifierOf: typeScriptClass =>
+      typeScriptClass.getSimpleName().startsWith('Legacy')
+        ? Optional.of(SliceIdentifier.of('legacy'))
+        : Optional.of(SliceIdentifier.of('current')),
+    getDescription: () => 'slices by legacy prefix',
+  })
+  .should()
+  .beFreeOfCycles()
+  .check(project.allClasses());
+```
+
+A violation lists each cycle and the imports that cause it:
+
+```
+Architecture violation : Rule slices matching '..myapp.(*)..' should be free of cycles.
+Errors : Cycle detected: billing -> orders -> billing
+  Dependencies of Slice billing on Slice orders:
+    - src.orders.Order.ts in src.billing.Invoice.ts
+  Dependencies of Slice orders on Slice billing:
+    - src.billing.Invoice.ts in src.orders.Order.ts
+```
+
+At most 100 cycles are reported, and 20 imports for each dependency between two slices. `.allowEmptyShould(true)` lets the rule pass when no class is assigned to a slice.
+
+**Limitation:** only `import` declarations are followed. Re-exports (`export * from './x'`, `export { a } from './x'`) and dynamic `import()` are not, so a cycle going through a barrel file (`index.ts`) is not detected.
+
 ### Configuration
 
 You can add a configuration file at your project root called arch-unit-ts.json with the following properties (default values bellow).
