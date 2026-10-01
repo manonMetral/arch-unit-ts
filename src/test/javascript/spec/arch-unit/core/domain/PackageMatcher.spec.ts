@@ -42,6 +42,11 @@ describe('PackageMatcher', () => {
     ['*.*.*', 'kebab-one.kebab-two.kebab-three', true],
     ['some.*.pkg', 'some.$dollar.pkg', true],
     ['some.*.pkg', 'some.kebab case.pkg', false],
+    ['some.$x.pkg', 'some.$x.pkg', true],
+    ['some.$x.pkg', 'some.ax.pkg', false],
+    ['some.$x.pkg', 'some.x.pkg', false],
+    ['some.[$a|b].pkg', 'some.$a.pkg', true],
+    ['some..$pkg', 'some.in.$pkg', true],
     ['some.*.pkg', 'some.@scope-name.pkg', true],
   ];
 
@@ -82,6 +87,7 @@ describe('PackageMatcher', () => {
     ['..myapp.(*)..', 'src.myapp.order-mgmt.domain', 'order-mgmt'],
     ['some.(**).pkg', 'some.in-between.sub-pkg.pkg', 'in-between.sub-pkg'],
     ['some.(*).pkg', 'some.@scope.pkg', '@scope'],
+    ['some.($x|y).pkg', 'some.$x.pkg', '$x'],
   ];
 
   it.each(listOfCaptureGroup)('should matcher %s on target %s get capture groups %s', (matcher, target, groupString) => {

@@ -42,6 +42,7 @@ export class PackageMatcher {
 
   convertToRegex(packageIdentifier: string): string {
     return packageIdentifier
+      .replaceAll('$', () => '\\$')
       .replace(new RegExp('\\[(.*?)]', 'g'), '(?:$1)')
       .replaceAll(PackageMatcher.TWO_STAR_CAPTURE_LITERAL, PackageMatcher.TWO_STAR_REGEX_MARKER)
       .replaceAll('*', () => `${PackageMatcher.SEGMENT_CHAR}+`)
